@@ -282,16 +282,21 @@ WHERE students.id = %(param_1)s
 
 ## ORM-删除
 1. 先查询踹需要删除的数据
+
     ```del_students = session.query(Students).filter_by(name='张3').first()```
 2. 添加到session的删除队列中
+
     ```session.delete(del_students)```
 3. 提交事务
+
     ```session.commit()```
 
 ## ORM-修改数据
 1. 先查询到需要修改的数据
+
     ```a = session.query(Students).filter_by(name='张4').first()```
 2. 修改value
+
     ```a.name = '王菲'```
 3. 修改的数据存储在session.dirty
     ```
