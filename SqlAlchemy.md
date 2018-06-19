@@ -1,7 +1,7 @@
 # ORM
     SORM 全称 Object Relational Mapping, 翻译过来叫对象关系映射。简单的说，ORM 将数据库中的表与面向对象语言中的类建立了一种对应关系。这样，我们要操作数据库，数据库中的表或者表中的一条记录就可以直接通过操作类或者类实例来完成。
 
-[image](http://7xqdxb.com1.z0.glb.clouddn.com/orm1.png)
+![image](http://7xqdxb.com1.z0.glb.clouddn.com/orm1.png)
 
 # SQLAlchemy
     SQLAlchemy 是Python 社区最知名的 ORM 工具之一，为高效和高性能的数据库访问设计，实现了完整的企业级持久模型。
