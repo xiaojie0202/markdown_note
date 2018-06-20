@@ -120,22 +120,126 @@
 |microsecond  |	[0, 1000000]|
 |tzinfo	tzinfo| 的子类对象，如timezone类的实例|
 ### 类方法和属性
-
 |类方法/属性名称|描述|
 |:---|:---|
 |time.max|	time类所能表示的最大时间：time(23, 59, 59, 999999)|
 |time.min|	time类所能表示的最小时间：time(0, 0, 0, 0)|
 |time.resolution|	时间的最小单位，即两个不同时间的最小差值：1微秒|
+###对象方法和属性
+|对象方法/属性名称|描述|
+|:---|:---|
+|t.hour|	时|
+|t.minute|	分|
+|t.second|	秒|
+|t.microsecond|	微秒|
+|t.tzinfo	|返回传递给time构造方法的tzinfo对象，如果该参数未给出，则返回None|
+|t.replace(hour[, minute[, second[, microsecond[, tzinfo]]]])|	生成并返回一个新的时间对象，原时间对象不变|
+|t.isoformat()|	返回一个‘HH:MM:SS.%f’格式的时间字符串|
+|t.strftime()|	返回指定格式的时间字符串，与time模块的strftime(format, struct_time)功能相同|
 ## datetime.datetime
     表示日期时间
+### 类的定义
+    class datetime.datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+- year, month 和 day是必须要传递的参数， tzinfo可以是None或tzinfo子类的实例。
+- 各参数的取值范围为：
+
+|参数名称|取值范围|
+|---|---|
+|year|	[MINYEAR, MAXYEAR]|
+|month|	[1, 12]|
+|day	|[1, 指定年份的月份中的天数]|
+|hour	|[0, 23]|
+|minute	|[0, 59]|
+|second	|[0, 59]|
+|microsecond|	[0, 1000000]|
+|tzinfo	|tzinfo的子类对象，如timezone类的实例|
+### 类方法和属性
+
+|类方法/属性名称|	描述|
+|---|---|
+|datetime.today()	|返回一个表示当前本期日期时间的datetime对象|
+|datetime.now([tz])	|返回指定时区日期时间的datetime对象，如果不指定tz参数则结果同上|
+|datetime.utcnow()	|返回当前utc日期时间的datetime对象|
+|datetime.fromtimestamp(timestamp[, tz])	|根据指定的时间戳创建一个datetime对象|
+|datetime.utcfromtimestamp(timestamp)	|根据指定的时间戳创建一个datetime对象|
+|datetime.combine(date, time)	|把指定的date和time对象整合成一个datetime对象|
+|datetime.strptime(date_str, format)|	将时间字符串转换为datetime对象|
+### 对象方法和属性
+
+|对象方法/属性名称|描述|
+|---|---|
+|dt.year, dt.month, dt.day	|年、月、日|
+|dt.hour, dt.minute, dt.second	|时、分、秒|
+|dt.microsecond, dt.tzinfo	|微秒、时区信息|
+|dt.date()|	获取datetime对象对应的date对象|
+|dt.time()|	获取datetime对象对应的time对象， tzinfo 为None|
+|dt.timetz()|	获取datetime对象对应的time对象，tzinfo与datetime对象的tzinfo相同|
+|dt.replace([year[, month[, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]]]]])|	生成并返回一个新的datetime对象，如果所有参数都没有指定，则返回一个与原datetime对象相同的对象|
+|dt.timetuple()	|返回datetime对象对应的tuple（不包括tzinfo）|
+|dt.utctimetuple()|	返回datetime对象对应的utc时间的tuple（不包括tzinfo）|
+|dt.toordinal()	|同date对象|
+|dt.weekday()	|同date对象|
+|dt.isocalendar()	|同date独享|
+|dt.isoformat([sep])|	返回一个‘%Y-%m-%d|
+|dt.ctime()	|等价于time模块的time.ctime(time.mktime(d.timetuple()))|
+|dt.strftime(format)	|返回指定格式的时间字符串|
+
 ## datetime.timedelta
     	表示两个date、time、datetime实例之间的时间间隔，分辨率（最小单位）可达到微秒	表示两个date、time、datetime实例之间的时间间隔，分辨率（最小单位）可达到微秒
+```
+timedelta对象表示连个不同时间之间的差值。如果使用time模块对时间进行算术运行，只能将字符串格式的时间 和 struct_time格式的时间对象 先转换为时间戳格式，然后对该时间戳加上或减去n秒，最后再转换回struct_time格式或字符串格式，这显然很不方便。而datetime模块提供的timedelta类可以让我们很方面的对datetime.date, datetime.time和datetime.datetime对象做算术运算，且两个时间之间的差值单位也更加容易控制。
+这个差值的单位可以是：天、秒、微秒、毫秒、分钟、小时、周。
+```
+### datetime.timedelta类的定义
+    class datetime.timedelta(days=0, seconds=0, microseconds=0, milliseconds=0, hours=0, weeks=0)
+>- 所有参数都是默认参数，因此都是可选参数。参数的值可以是整数或浮点数，也可以是正数或负数。内部值存储days、seconds 和 microseconds，其他所有参数都将被转换成这3个单位：
+- 1毫秒转换为1000微秒
+- 1分钟转换为60秒
+- 1小时转换为3600秒
+- 1周转换为7天
+### 类属性
+
+|类属性名称|描述|
+|---|---|
+|timedelta.min|	timedelta(-999999999)|
+|timedelta.max|	timedelta(days=999999999, hours=23, minutes=59, seconds=59, microseconds=999999)|
+|timedelta.resolution|	timedelta(microseconds=1)|
+### 实例方法和属性
+
+|实例方法/属性名称|描述|
+|---|---|
+|td.days|	天 [-999999999, 999999999]|
+|td.seconds|	秒 [0, 86399]|
+|td.microseconds|	微秒 [0, 999999]|
+|td.total_seconds()|	时间差中包含的总秒数，等价于: td / timedelta(seconds=1)|
+```
+>>> import datetime
+>>>
+>>> datetime.timedelta(365).total_seconds()  # 一年包含的总秒数
+31536000.0
+>>> dt = datetime.datetime.now()
+>>> dt + datetime.timedelta(3)  # 3天后
+datetime.datetime(2017, 2, 8, 9, 39, 40, 102821)
+>>> dt + datetime.timedelta(-3)  # 3天前
+datetime.datetime(2017, 2, 2, 9, 39, 40, 102821)
+>>> dt + datetime.timedelta(hours=3)  # 3小时后
+datetime.datetime(2017, 2, 5, 12, 39, 40, 102821)
+>>> dt + datetime.timedelta(hours=-3)  # 3小时前
+datetime.datetime(2017, 2, 5, 6, 39, 40, 102821)
+>>> dt + datetime.timedelta(hours=3, seconds=30)  # 3小时30秒后  
+datetime.datetime(2017, 2, 5, 12, 40, 10, 102821)
+```
+
 ## datetime.tzinfo
     时区相关信息对象的抽象基类。它们由datetime和time类使用，以提供自定义时间的而调整。
 ## datetime.timezone
     Python 3.2中新增的功能，实现tzinfo抽象基类的类，表示与UTC的固定偏移量
+# 时间格式码
+    time模块的struct_time以及datetime模块的datetime、date、time类都提供了strftime()方法，该方法可 以输出一个指定格式的时间字符串。具体格式由一系列的格式码（格式字符）组成，Python最终调用的是各个平台C库的strftme()函数，因此各平台对全套格式码的支持会有所不同，具体情况需要参考该平台上的strftime(3)文档。下面列出了C标准（1989版）要求的所有格式码，它们在所有标准C实现的平台上都可以工作：
+![](https://images2015.cnblogs.com/blog/1063221/201702/1063221-20170205104434573-1343126060.png)
     
     
 
-https://blog.csdn.net/p9bl5bxp/article/details/54945920
+```https://blog.csdn.net/p9bl5bxp/article/details/54945920
+```
 
