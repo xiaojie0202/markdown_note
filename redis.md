@@ -38,6 +38,16 @@
     ```$redis-server```
 ### 客户端连接
     $ redis-cli -h 127.0.0.1 -p 6379
+# 配置用户名密码及远程连接
+```
+# vim /etc/redis/redis.cof
+# bind 127.0.0.1
+#requirepass foobared 
+》》
+requirepass password 
+>>
+
+```
 ### 切换数据库
     redis最多支持16个数据库
     '''
@@ -259,8 +269,154 @@
     pip install redis
 ## 链接redis
 
+1. 操作模式
+```
+redis.py提供两个类Redis和StrictRedis用于实现Redis的命令，
+StrictRedis用于实现大部分官方的命令，并使用官方的语法和命令，
+Redis是StrictRedis的子类，用于向后兼容旧版本的redis.py。
+
+
+conn = redis.Redis(host, port, db, password, socket_timeout, socket_connect_timeout, socket_keepalive)
 ```
 
+2. 连接池
+```
+redis.py使用connection pool来管理对一个redis server的所有连接，
+避免每次建立、释放连接的开销。
+默认，每个Redis实例都会维护一个自己的连接池。可以直接建立一个连接池，
+然后作为参数Redis，这样就可以实现多个Redis实例共享一个连接池。
+
+
+import redis
+pool = redis.ConnectionPool(host='10.211.55.4', port=6379)
+r = redis.Redis(connection_pool=pool)
+r.set('foo', 'Bar')
+print r.get('foo')
+```
+## String操作
+    redis中的String在在内存中按照一个name对应一个value来存储
+
+- set(name, value, ex=None, px=None, nx=False, xx=False)
+```
+ex，过期时间（秒）
+px，过期时间（毫秒）
+nx，如果设置为True，则只有name不存在时，当前set操作才执行
+xx，如果设置为True，则只有name存在时，岗前set操作才执行
+```
+- setnx(name, value)
+```
+设置值，只有name不存在时，执行设置操作（添加）
+```
+- setex(name, value, time)
+```
+设置值,time，过期时间（数字秒 或 timedelta对象）
+```
+- psetex(name, time_ms, value)
+```
+# 设置值, time_ms，过期时间（数字毫秒 或 timedelta对象）
+```
+- get(name)
+```
+获取值
+```
+- mget(keys, *args)
+```
+批量获取
+mget('ylr', 'wupeiqi')
+or
+r.mget(['ylr', 'wupeiqi'])
+```
+- getset(name, value)
+```
+设置新值并获取原来的值
+```
+- getrange(key, start, end)
+```
+# 获取子序列（根据字节获取，非字符）
+# 参数：
+    # name，Redis 的 name
+    # start，起始位置（字节）
+    # end，结束位置（字节）
+# 如： "武沛齐" ，0-3表示 "武"
+```
+- setrange(name, offset, value)
+```
+# 修改字符串内容，从指定字符串索引开始向后替换（新值太长时，则向后添加）
+# 参数：
+    # offset，字符串的索引，字节（一个汉字三个字节）
+    # value，要设置的值
+```
+- setbit(name, offset, value)
+```
+# 对name对应值的二进制表示的位进行操作
+# 参数：
+    # name，redis的name
+    # offset，位的索引（将值变换成二进制后再进行索引）
+    # value，值只能是 1 或 0
+```
+- getbit(name, offset)
+```
+# 获取name对应的值的二进制表示中的某位的值 （0或1）
+```
+- bitcount(key, start=None, end=None)
+```
+# 获取name对应的值的二进制表示中 1 的个数
+# 参数：
+    # key，Redis的name
+    # start，位起始位置
+    # end，位结束位置
+```
+- bitop(operation, dest, *keys)
+```
+# 获取多个值，并将值做位运算，将最后的结果保存至新的name对应的值
+ 
+# 参数：
+    # operation,AND（并） 、 OR（或） 、 NOT（非） 、 XOR（异或）
+    # dest, 新的Redis的name
+    # *keys,要查找的Redis的name
+ 
+# 如：
+    bitop("AND", 'new_name', 'n1', 'n2', 'n3')
+    # 获取Redis中n1,n2,n3对应的值，然后讲所有的值做位运算（求并集），然后将结果保存 new_name 对应的值中
+```
+- strlen(name)
+```
+# 返回name对应值的字节长度（一个汉字3个字节）
+```
+- incr(self, name, amount=1)
+```
+# 自增 name对应的值，当name不存在时，则创建name＝amount，否则，则自增。
+ 
+# 参数：
+    # name,Redis的name
+    # amount,自增数（必须是整数）
+ 
+# 注：同incrby
+```
+- incrbyfloat(self, name, amount=1.0)
+```
+# 自增 name对应的值，当name不存在时，则创建name＝amount，否则，则自增。
+ 
+# 参数：
+    # name,Redis的name
+    # amount,自增数（浮点型）
+```
+- decr(self, name, amount=1)
+```
+# 自减 name对应的值，当name不存在时，则创建name＝amount，否则，则自减。
+ 
+# 参数：
+    # name,Redis的name
+    # amount,自减数（整数）
+```
+- append(key, value)
+```
+# 在redis name对应的值后面追加内容
+ 
+# 参数：
+    key, redis的name
+    value, 要追加的字符串
 ```
 
 
+# http://www.cnblogs.com/wupeiqi/articles/5132791.html

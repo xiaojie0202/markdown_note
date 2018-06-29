@@ -271,6 +271,8 @@ class MySQLPipeline(object):
     - self.cookie_jar = cookie_jar._cookies
 4. 请求的时候携带cookie
     - yield Request(url='http://dig.chouti.com/login', cookies=self.cookie_jar, callback=self.check_login )
+5. 自动操作cookies（在Request参数中添加 meta={'cookiejar': True}）
+    - yield Request(url='http://dig.chouti.com/login', callback=self.check_login, meta={'cookiejar': True} )
 ## Scrapy-信号
     Scrapy预留了很多钩子，用来让我们扩展
 ### Scrapy预留的钩子
@@ -678,6 +680,142 @@ class NewsPipeline(object):
         '''
         print(spider, item['news_title'], item['news_link'],item['news_png'])
 ```
+# Scrapy-redis
+    让Scrapy实现分布式爬虫 pip install scrapy-redis
+## 在settings.py文件中配置基本连接redis信息
+```python
+REDIS_HOST = '127.0.0.1'        # 主机名
+REDIS_PORT = 6379               # 端口哈
+REDIS_URL = 'redis//user:pass@hostname:9001' # 连接url（优先于以上配置）
+REDIS_PARAMS = {'password' : 'xiaojiexiaojie'}
+REDIS_PARAMS['redis_cls'] = 'myproject.RedisClient' # 指定连接Redis的python模块，默认redis.StrictRedis
+REDIS_ENCODING = 'utf-8'
+```
+## 使用scrapy_redis的去重规则
+```python
+DUPEFILTER_CLASS = 'scrapy_redis.dupefilter.RFPDupeFilter'
+```
+## scrapy_redis组件之三种队列
+1. FifoQueue
+>- 队列数据结构，先进先出
+>- 广度优先
+2. LifoQueue
+>- 栈数据结构后进先出
+>- 深度优先
+3. PriorityQueue
+>- 优先级队列, 优先级存储在response.request.priority
+>- 广度优先（默认）
+## scrapy-redis调度器
+    正常来说引擎从爬虫中获取url放在调度器中（内中中）, 可以使用scrapy-redis调度器(scrapy_redis.scheduler.Scheduler)放在redis中
+1. 调度器配置
+```python
+# 启用scrapy_redis调度器
+SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+
+SCHEDULER_QUEUE_CLASS = 'scrapy_redis.queue.PriorityQueue'          # 默认使用优先级队列（默认），其他：PriorityQueue（有序集合），FifoQueue（列表）、LifoQueue（列表）
+SCHEDULER_QUEUE_KEY = '%(spider)s:requests'                         # 调度器中请求存放在redis中的key
+SCHEDULER_SERIALIZER = "scrapy_redis.picklecompat"                  # 对保存到redis中的数据进行序列化，默认使用pickle
+SCHEDULER_PERSIST = True                                            # 是否在关闭时候保留原来的调度器和去重记录，True=保留，False=清空
+SCHEDULER_FLUSH_ON_START = True                                     # 是否在开始之前清空 调度器和去重记录，rue=清空，False=不清空
+SCHEDULER_IDLE_BEFORE_CLOSE = 10                                    # 去调度器中获取数据时，如果为空，最多等待时间（最后没数据，未获取到）。
+SCHEDULER_DUPEFILTER_KEY = '%(spider)s:dupefilter'                  # 去重规则，在redis中保存时对应的key
+SCHEDULER_DUPEFILTER_CLASS = 'scrapy_redis.dupefilter.RFPDupeFilter'# 去重规则对应处理的类
+```
+## scrapy_redis数据持久化
+```python
+# settings
+ITEM_PIPELINES= ['crapy_redis.pipelines.RedisPipeline']
+```
+## scrapy-redis爬虫 RedisSpider
+    基于redis的分布式爬虫， 可以把起始url放到redis中
+
+```python
+# spider/chout.py
+from scrapy_redis.spiders import RedisSpider
+
+class ChoutiSpider(RedisSpider):
+    name = 'chouti'
+    allowed_domains = ['chouti.com']
+    
+    def parse(self, response):
+        print(response)
+
+# settings.py
+REDIS_START_URLS_BATCH_SIZE = 1 # 表示爬虫其实有几个url
+REDIS_START_URLS_AS_SET = True # true：把起始url放在redis集合中，  false:把起始url放到redis的列表中
+```    
+
+# Scrapy下载大文件
+    如果遇到大文件就需要一点一点下载楼
+```pipline
+from twisted.web.client import Agent, getPage, ResponseDone, PotentialDataLoss
+
+from twisted.internet import defer, reactor, protocol
+from twisted.web._newclient import Response
+from io import BytesIO
+
+
+class _ResponseReader(protocol.Protocol):
+
+    def __init__(self, finished, txresponse, file_name):
+        self._finished = finished
+        self._txresponse = txresponse
+        self._bytes_received = 0
+        self.f = open(file_name, mode='wb')
+
+    def dataReceived(self, bodyBytes):
+        self._bytes_received += len(bodyBytes)
+
+        # 一点一点的下载
+        self.f.write(bodyBytes)
+
+        self.f.flush()
+
+    def connectionLost(self, reason=connectionDone):
+        if self._finished.called:
+            return
+        if reason.check(ResponseDone):
+            # 下载完成
+            self._finished.callback((self._txresponse, 'success'))
+        elif reason.check(PotentialDataLoss):
+            # 下载部分
+            self._finished.callback((self._txresponse, 'partial'))
+        else:
+            # 下载异常
+            self._finished.errback(reason)
+
+        self.f.close()
+
+
+class BigfilePipeline(object):
+    def process_item(self, item, spider):
+        # 创建一个下载文件的任务
+
+        if item['type'] == 'file':
+            agent = Agent(reactor)
+            d = agent.request(
+                method=b'GET',
+                uri=bytes(item['url'], encoding='ascii')
+            )
+            # 当文件开始下载之后，自动执行 self._cb_bodyready 方法
+            d.addCallback(self._cb_bodyready, file_name=item['file_name'])
+
+            return d
+        else:
+            return item
+
+    def _cb_bodyready(self, txresponse, file_name):
+        # 创建 Deferred 对象，控制直到下载完成后，再关闭链接
+        d = defer.Deferred()
+        d.addBoth(self.download_result)  # 下载完成/异常/错误之后执行的回调函数
+        txresponse.deliverBody(_ResponseReader(d, txresponse, file_name))
+        return d
+
+    def download_result(self, response):
+        pass
+
+
+```
 # Scrapy源码剖析
 ## Scrapy源码剖析-twisted
 ```
@@ -708,3 +846,4 @@ def task():
 task()
 reactor.run()  # 3. 开始事件循环
 ```
+

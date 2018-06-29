@@ -62,4 +62,117 @@ def img_base64(url):
     
 5. 获取所有联系人
 
+ser_list_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetcontact?lang=zh_CN&r={0}&seq=0&skey={1}".format(int(time.time()*1000), ticket_dict.get('skey'))
+    user_list_ret = requests.get(url=user_list_url, cookies=cookies)
+    user_list_ret.encoding = 'utf-8'
+    user_list_dict = user_list_ret.json()
+ 
+ 6. 发送消息
+ def send():
+    ticket_dict = session.get('ticket_dic')
+
+    from_user = request.form.get('formuser')
+    to = request.form.get('to')
+    content = request.form.get('content')
+    ctime = str(time.time()*1000)
+    msg_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsendmsg?lang=zh_CN&pass_ticket={0}".format(ticket_dict['pass_ticket'])
+
+    data_dict = {
+        'BaseRequest': {
+            "DeviceID": "e687896895614144",
+            "Sid": ticket_dict.get('wxsid'),
+            "Uin": ticket_dict.get('wxuin'),
+            "Skey": ticket_dict.get('skey'),
+        },
+        'Msg': {
+            'ClientMsgId':ctime,
+            'LocalID':ctime,
+            'FromUserName':from_user,
+            'ToUserName':to,
+            "Content":content,
+            'Type':1
+        },
+        'Scene': 0
+    }
+
+    ret = requests.post(
+        url=msg_url,
+        data=bytes(json.dumps(data_dict,ensure_ascii=False),encoding='utf-8')
+    )
+    return jsonify(ret.json())
+
+7. 接受消息
+def get_msg():
+    # 检查是否有新消息到来
+    sync_url = "https://webpush.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck"
+    ticket_dict = session.get('ticket_dic')
+    sync_data_list = []
+    for item in session.get('SyncKey')['List']:
+        temp = "%s_%s" % (item['Key'], item['Val'])
+        sync_data_list.append(temp)
+
+    sync_data_str = "|".join(sync_data_list)
+    nid = int(time.time())
+    sync_dict = {
+        "r": nid,
+        "skey": ticket_dict['skey'],
+        "sid": ticket_dict['wxsid'],
+        "uin": ticket_dict['wxuin'],
+        "deviceid": "e531777446530354",
+        "synckey": sync_data_str
+    }
+    response_sync = requests.get(sync_url, params=sync_dict, cookies=session.get('cookies'))
+    print(response_sync.text)
+    # window.synccheck={retcode:"0",selector:"2"}
+    if 'selector:"2"' in response_sync.text:
+        fetch_msg_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsync?sid=%s&skey=%s&lang=zh_CN&pass_ticket=%s" % (ticket_dict['wxsid'], ticket_dict['skey'], ticket_dict['pass_ticket'])
+
+        form_data = {
+            'BaseRequest': {
+                'DeviceID': 'e531777446530354',
+                'Sid': ticket_dict['wxsid'],
+                'Skey': ticket_dict['skey'],
+                'Uin': ticket_dict['wxuin']
+            },
+            'SyncKey': session.get('SyncKey'),
+            'rr': str(time.time())
+        }
+        response_fetch_msg = requests.post(fetch_msg_url, json=form_data)
+        response_fetch_msg.encoding = 'utf-8'
+        res_fetch_msg_dict = json.loads(response_fetch_msg.text)
+        session['SyncKey'] = res_fetch_msg_dict['SyncKey']
+        '''
+        msgtype:1 :个人信息
+        msgtypy:2: 群组消息
+        msgtype:3: 公众号信息
+        '''
+        msg = {'msg': True, 'data':[]}
+        print()
+        if not res_fetch_msg_dict['AddMsgList']:
+            return jsonify({'msg': False})
+        for item in res_fetch_msg_dict['AddMsgList']:
+            msg_dict = {'msgtype': 1, 'Content': item['Content'], 'FromUserName': item['FromUserName'], 'ctime': time.strftime('%H:%S', time.localtime(item['CreateTime']))}
+
+            if item['Url'] != '':
+                msg_dict['msgtype'] = 3
+                msg_dict['title'] = item['FileName']
+                msg_dict['url'] = item['Url']
+            if item['FromUserName'].count('@') == 2:
+                msg_dict['msgtype'] = 2
+                send_user, info = re.search(r'(?P<senduser>.+):<br/>(?P<msg>.+)', msg_dict['Content']).group('senduser', 'msg')
+                msg_dict['SendUser'] = send_user
+                msg_dict['Content'] = info
+
+            print(msg_dict)
+            msg['data'].append(msg_dict)
+            print(item['Content'], ":::::", item['FromUserName'], "---->", item['ToUserName'], )
+        return jsonify(msg)
+    return jsonify({'msg': False})
+
+
+
+
+
+
+
 

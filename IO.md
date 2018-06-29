@@ -84,7 +84,54 @@ while True:
 ## 异步IO
 ### 自定义异步IO
 ```
+import socket
+import select
 
+
+class Request(object):
+    def __init__(self,sk,callback):
+        self.sk = sk
+        self.callback = callback
+
+    def fileno(self):
+        return self.sk.fileno()
+
+
+class AsnycHttp(object):
+
+    def __init__(self):
+        self.read_socket = []  # 存放可读的socket
+        self.send_socket = []   # 存放可写的socket
+
+    def add(self, url, callback):
+        sk = socket.socket()
+        sk.setblocking(False)
+        try:
+            sk.connect((url, 80))
+        except BlockingIOError:
+            pass
+        req = Request(sk, callback)
+        self.read_socket.append(req)
+        self.send_socket.append(req)
+
+    def run(self):
+        while True:
+            r, w, e = select.select(self.read_socket, self.send_socket, [])
+
+            # 所有已经连接成功的socket
+            for req in w:
+                req.sk.sendall(b'GET /wupeiqi HTTP/1.1\r\nUser-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36\r\n\r\n')
+                self.send_socket.remove(req)
+
+            # 所有有数据返回的socket
+            for req in r:
+                data = req.sk.recv(8096)
+                req.callback(data)
+                req.sk.close()  # 断开连接：短连接、无状态
+                self.read_socket.remove(req)  # 不再监听
+
+            if not self.read_socket:
+                break
 ```
 ### asycio
 ```
