@@ -709,6 +709,7 @@ def process_response(response, *args, **kwargs):
 4. 定制错误信息页面
 ```python
 # 当用户访问到不存在的页面应该给客户端返回一个404页面，或者根据不同的错误状态码返回不同的页面
-
-
+@app.errorhandler(404)
+def erro_404(erro):
+    return render_template('404.html')
 ```
