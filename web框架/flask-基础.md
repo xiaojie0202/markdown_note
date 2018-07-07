@@ -1,4 +1,6 @@
+
 [toc]
+
 # flask
 ```
     Flask是一个基于Python开发并且依赖jinja2模板和Werkzeug WSGI服务的一个微型框架，对于Werkzeug本质是Socket服务端，其用于接收http请求并对请求进行预处理，然后触发Flask框架，开发人员基于Flask框架提供的功能对请求进行相应的处理，并返回给用户，如果要返回给用户复杂的内容时，需要借助jinja2模板来实现对模板的处理，即：将模板和数据进行渲染，将渲染后的字符串返回给用户浏览器。
@@ -372,8 +374,23 @@ def show_func():
 
 # index.html
 {{show_func()}}
+```
+>- 定制模板函数和过滤
+
+```python
+
+@app.template_global
+def add(a1, a2):
+    return a1 + a2
+# index.html : {{add(1,2)}}
+
+@app.template_filter
+def sun(a1, a2, a3):
+    return a1 * a2 * a3
+# index.html : {{1 | sun(2,3)}}
 
 ```
+
 ## 请求对象-request
     flask.request 封装了用户请求的所有数据
 ### request详解
@@ -707,10 +724,36 @@ def process_response(response, *args, **kwargs):
 当在app中有多个before_request, after_request方法的时候，访问到来会先经过代码上边写的before_request依次往下执行所有的before_request方法
 当给用户返回数据的时候会先执行代码底部的after_request方法依次向上执行所有
 ```
-4. 定制错误信息页面
-```python
-# 当用户访问到不存在的页面应该给客户端返回一个404页面，或者根据不同的错误状态码返回不同的页面
-@app.errorhandler(404)
-def erro_404(erro):
-    return render_template('404.html')
+
+4. before_first_request,
+
 ```
+# 当客户端第一次访问的时候执行的函数
+@app.before_first_request
+def fiest_request(*args, **kwargs):
+    pass
+
+```
+
+## Flask-中间件
+```python
+class Middleware(object):
+
+    def __init__(self, old_wsgi):
+        self.old_wsgi = old_wsgi
+
+    def __call__(self, environ, start_response):
+        print('开始之前')
+        ret = self.old_wsgi(environ, start_response)
+        print('结束之后')
+        return ret
+
+
+if __name__ == '__main__':
+    app.wsgi_app = Middleware(app.wsgi_app)
+    app.run()
+
+
+```
+## Flask-蓝图
+    
