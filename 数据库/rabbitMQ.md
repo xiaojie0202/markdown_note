@@ -82,7 +82,7 @@ channel.basic_consume(callback, queue='hello', no_ack=True)
 channel.start_consuming()
 ```
 ### 消息持久化
->- 当有生产者发送到RabbitMQ服务器，此时在消费者还未取出队列的时候，服务器Down机了，这是消息队列会丢失，此时为了队列的持久化可以在声明队列的时候指定durable=True,此时消费者也需要指定durable=True
+    当有生产者发送到RabbitMQ服务器，此时在消费者还未取出队列的时候，服务器Down机了，这是消息队列会丢失，此时为了队列的持久化可以在声明队列的时候指定durable=True,此时消费者也需要指定durable=True
 ```
 # 声明持久化消息队列，当服务器down掉也会存在
 channel.queue_declare(queue='hello', durable=True)
@@ -360,7 +360,7 @@ channel.basic_consume(callback,
 channel.start_consuming()
 
 ```
-## RPC
+## RPC远程过程调用
     客户端发送请求到队列，服务端从队列取数据进行处理，处理完毕将结果加上一个唯一标识符返回到一个新的队列让客户端取结果
 ![](http://www.rabbitmq.com/img/tutorials/python-six.png)
 >- 服务端

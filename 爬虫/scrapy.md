@@ -115,6 +115,17 @@ def parse(self, response):
 >>>- headers: 请求头
 >>>- body: 请求体：boby='ke=vi&kw=v2'
 >>>- cookies: 请求cookies
+## Sceapy-响应对象response
+    在请求完的时候，请求数据会封装成HtmlResponse对象返回给callback函数
+>- 模块： from scrapy.http.response.html import HtmlResponse
+```
+print(response.headers)  # 响应头
+print(response.status)  # 状态码
+print(response.request)  # 请求对象
+print(response.meta)  # 请求meta
+print(response.body) # 响应体
+```
+
 
 
 ### 请求指纹重复过滤器
