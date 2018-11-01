@@ -102,7 +102,11 @@ cheese = driver.find_element_by_partial_link_text("cheese")
 from selenium.webdriver.common.by import By
 cheese = driver.find_element(By.PARTIAL_LINK_TEXT, "cheese")
 ```
-### 配置Charm为无界面浏览器
+## 获取元素属性
+## 执行js代码
+## 打开新标签页
+## 
+## 配置Charm为无界面浏览器
 ```
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -110,7 +114,7 @@ from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--disable-gpu')
+chrome_options.add_argument('log-level=3')
 
-# 初始化一个PhantomJSdriver用来驱动 PhantomJS
 driver = webdriver.Chrome(executable_path=r'E:\SDE\webdriver\chromedriver2.38.exe', chrome_options=chrome_options)
 ```
