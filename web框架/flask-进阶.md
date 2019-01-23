@@ -86,7 +86,7 @@ if __name__ == '__main__':
     app.wsgi_app = Middleware(app.wsgi_app)
     app.run()
 ```
-## Flask-蓝图
+# Flask-蓝图
     蓝图的基本设想是它们记录注册到一个应用时的操作执行情况。 当从一个端点到另一端分发请求和生成 URL 时，Flask 关联视图函数和蓝图。
 1. 创建一个蓝图
 ```python
@@ -110,12 +110,251 @@ from yourapplication.simple_page import simple_page
 app = Flask(__name__)
 app.register_blueprint(simple_page)
 ```
+# Flask-Session
+## 简介
+flask-session是flask框架的session组件，由于原来flask内置session使用签名cookie保存，该组件则将支持session保存到多个地方，如：
+- redis：保存数据的一种工具，五大类型。非关系型数据库
+- memcached
+- filesystem
+- mongodb
+- sqlalchmey：那数据存到数据库表里面
+
+## 安装
+>>- pip install flask-session
+## 存储到redis
+```python
+import redis
+from flask import Flask, session
+from flask_session import Session
+
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'xxxx'
+
+app.config['SESSION_TYPE'] = 'redis'  # session类型为redis
+app.config['SESSION_PERMANENT'] = False  # 如果设置为True，则关闭浏览器session就失效。
+app.config['SESSION_USE_SIGNER'] = False  # 是否对发送到浏览器上session的cookie值进行加密
+app.config['SESSION_KEY_PREFIX'] = 'session:'  # 保存到session中的值的前缀
+app.config['SESSION_REDIS'] = redis.Redis(host='127.0.0.1', port='6379', password='123123')  # 用于连接redis的配置
+
+Session(app)
+
+
+@app.route('/index')
+def index():
+    session['k1'] = 'v1'
+    return 'xx'
+
+
+if __name__ == '__main__':
+    app.run()
+```
+## 存储到memcached
+```python
+from flask import Flask, session
+from flask_session import Session
+import memcache
+
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'xxxx'
+
+
+app.config['SESSION_TYPE'] = 'memcached' # session类型为redis
+app.config['SESSION_PERMANENT'] = True # 如果设置为True，则关闭浏览器session就失效。
+app.config['SESSION_USE_SIGNER'] = False # 是否对发送到浏览器上session的cookie值进行加密
+app.config['SESSION_KEY_PREFIX'] = 'session:' # 保存到session中的值的前缀
+app.config['SESSION_MEMCACHED'] = memcache.Client(['10.211.55.4:12000'])
+
+
+Session(app)
+
+
+@app.route('/index')
+def index():
+    session['k1'] = 'v1'
+    return 'xx'
+
+
+if __name__ == '__main__':
+    app.run()
+```
+## 存储到文件系统
+```python
+from flask import Flask, session
+from flask_session import Session
+
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'xxxx'
+
+app.config['SESSION_TYPE'] = 'filesystem'  # session类型为文件系统
+app.config['SESSION_FILE_DIR'] = '/Users/app/'  # 存储session的文件路径
+app.config['SESSION_FILE_THRESHOLD'] = 500  # 存储session的个数如果大于这个值时，就要开始进行删除了
+app.config['SESSION_FILE_MODE'] = 384  # 文件权限类型
+
+app.config['SESSION_PERMANENT'] = True  # 如果设置为True，则关闭浏览器session就失效。
+app.config['SESSION_USE_SIGNER'] = False  # 是否对发送到浏览器上session的cookie值进行加密
+app.config['SESSION_KEY_PREFIX'] = 'session:'  # 保存到session中的值的前缀
+
+Session(app)
+
+
+@app.route('/index')
+def index():
+    session['k1'] = 'v1'
+    session['k2'] = 'v1'
+    return 'xx'
+
+
+if __name__ == '__main__':
+    app.run()
+```
+## 存储到mongodb
+```python
+from flask import Flask, session
+from flask_session import Session
+import pymongo
+
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'xxxx'
+
+app.config['SESSION_TYPE'] = 'mongodb'  # session类型为mongodb
+
+app.config['SESSION_MONGODB'] = pymongo.MongoClient('47.93.4.198', 27017)
+app.config['SESSION_MONGODB_DB'] = 'mongo的db名称（数据库名称）'
+app.config['SESSION_MONGODB_COLLECT'] = 'mongo的collect名称（表名称）'
+
+app.config['SESSION_PERMANENT'] = True  # 如果设置为True，则关闭浏览器session就失效。
+app.config['SESSION_USE_SIGNER'] = False  # 是否对发送到浏览器上session的cookie值进行加密
+app.config['SESSION_KEY_PREFIX'] = 'session:'  # 保存到session中的值的前缀
+
+Session(app)
+
+
+@app.route('/index')
+def index():
+    session['k1'] = 'v1'
+    session['k2'] = 'v1'
+    return 'xx'
+
+
+if __name__ == '__main__':
+    app.run()
+```
+## 存储到 sqlalchemy
+```python
+from flask import Flask, session
+from flask_session import Session as FSession
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'xxxx'
+
+# 设置数据库链接
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:123@127.0.0.1:3306/fssa?charset=utf8'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+
+# 实例化SQLAlchemy
+db = SQLAlchemy(app)
+
+
+
+app.config['SESSION_TYPE'] = 'sqlalchemy'  # session类型为sqlalchemy
+app.config['SESSION_SQLALCHEMY'] = db # SQLAlchemy对象
+app.config['SESSION_SQLALCHEMY_TABLE'] = 'session' # session要保存的表名称
+app.config['SESSION_PERMANENT'] = True  # 如果设置为True，则关闭浏览器session就失效。
+app.config['SESSION_USE_SIGNER'] = False  # 是否对发送到浏览器上session的cookie值进行加密
+app.config['SESSION_KEY_PREFIX'] = 'session:'  # 保存到session中的值的前缀
+FSession(app)
+
+
+@app.route('/index')
+def index():
+
+    session['k1'] = 'v1'
+    session['k2'] = 'v1'
+
+    return 'xx'
+
+
+if __name__ == '__main__':
+    app.run()
+```
+# WTForm
+    https://www.cnblogs.com/wupeiqi/articles/8202357.html
+# Flask-SQLAlchmey（ORM）
+    数据库交互ORM
+>- 安装
+>>- pip install flask-sqlalchemey
+## 在flask中使用
+```python
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+# 初始化app
+app = Flask(__name__)
+
+
+
+# 配置数据库连接
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///foo.db'
+# 连接池数量
+app.config['SQLALCHEMY_POOL_SIZE'] = 10
+# 数据库连接超时时间
+app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
+# 配置为Ture 在请求结束后自动commit
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+"""
+# 其他配置
+app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite:///:memory:')
+app.config.setdefault('SQLALCHEMY_BINDS', None)
+app.config.setdefault('SQLALCHEMY_NATIVE_UNICODE', None)
+app.config.setdefault('SQLALCHEMY_ECHO', False)
+app.config.setdefault('SQLALCHEMY_RECORD_QUERIES', None)
+app.config.setdefault('SQLALCHEMY_POOL_SIZE', None)
+app.config.setdefault('SQLALCHEMY_POOL_TIMEOUT', None)
+app.config.setdefault('SQLALCHEMY_POOL_RECYCLE', None)
+app.config.setdefault('SQLALCHEMY_MAX_OVERFLOW', None)
+app.config.setdefault('SQLALCHEMY_COMMIT_ON_TEARDOWN', False)
+"""
+# 初始化sqlalchemy
+db = SQLAlchemy(app)
+
+# 创建模型类
+class Users(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, unique=True, nullable=False)
+    email = db.Column(db.String, unique=True, nullable=False)
+    password = db.Column(db.String, nullable=False)
+
+    def __repr__(self):
+        return '<Users %s>' % self.username
+
+# 视图函数
+@app.route('/<user_id>', methods=['GET'])
+def index(user_id):
+    # 查询
+    user = Users.query.filter(Users.id==user_id).first()
+    # 查询
+    user = db.session.query(Users).filter(Users.id==user_id).first()
+    # 删除当前用户
+    db.session.delete(user)
+    db.session.commit()
+    return 'ok'
+
+if __name__ == '__main__':
+    app.run()
+```
+
 # Flask-信号
 
 # http://www.pythondoc.com/
-# Flask-SQLAlchmey（ORM）
+
 # Flask-Dashed(相当于django-admin)
-# Flask-WTF（WEB表单）
 # Flask-Mail（邮件扩展）
 # Flask-Login （用户登录）
 # Flask 中使用 Celery

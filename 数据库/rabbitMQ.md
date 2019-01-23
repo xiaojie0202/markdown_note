@@ -10,14 +10,16 @@
 >- Queue: 消息最终被送到这里等待consumer取走。一个message可以被同时拷贝到多个queue中。
 >- Binding: exchange和queue之间的虚拟连接，binding中可以包含routing key。Binding信息被保存到exchange中的查询表中，用于message的分发依据。
 # rabbitMQ 安装
->- 添加源qq
+>- 添加源
 >>- echo 'deb http://www.rabbitmq.com/debian/ testing main' | sudo tee /etc/apt/sources.list.d/rabbitmq.list
 >- 新增公钥
->>-wget -O- https://www.rabbitmq.com/rabbitmq-release-signing-key.asc | sudo apt-key add -
+>>- wget -O- https://www.rabbitmq.com/rabbitmq-release-signing-key.asc | sudo apt-key add -
 >- 更新源 
 >>- sudo apt-get update
 >- 安装rabbitMQ
 >>- sudo apt-get install rabbitmq-server
+>- 启动rabbitMQ
+>>- service rabbitmq-server start
 >- 查看rabbitmq进程
 >>- invoke-rc.d rabbitmq-server stop/start/etc
 >- 打开管理页面 
@@ -33,6 +35,88 @@
 >>- rabbitmqctl set_permissions -p "/" admin ".*" ".*" ".*" 
 >- 用刚设置的账户登录管理页面 
 >>- http://127.0.0.1:15672
+>- 查看当前所有的队列
+>>- rabbitmqctl list_queues
+>- 查看当前所有的交换机
+>>- rabbitmqctl list_exchanges 
+>- 查看当前所有的绑定
+>>- rabbitmqctl list_bindings 
+>- 查看所有的tcp链接
+>>- rabbitmqctl list_connections
+>- 查看所有的信道
+>>- rabbitmqctl list_channels
+>- 关闭应用
+>>- rabbitmqctl stop_app 
+>- 打开应用
+>>- rabbitmqctl start_app
+>- 清空队列
+>>- rabbitmqctl reset
+>- 查看状态信息
+```
+rabbitmqctl status
+
+# 得到如下的信息
+
+[{pid,3086},   # rabbitmq服务运行的进程ID
+ {running_applications,
+     [{rabbit,"RabbitMQ","3.6.10"},
+      {ranch,"Socket acceptor pool for TCP protocols.","1.3.0"},
+      {ssl,"Erlang/OTP SSL application","8.2"},
+      {public_key,"Public key infrastructure","1.4.1"},
+      {asn1,"The Erlang ASN1 compiler version 5.0","5.0"},
+      {os_mon,"CPO  CXC 138 46","2.4.2"},
+      {rabbit_common,
+          "Modules shared by rabbitmq-server and rabbitmq-erlang-client",
+          "3.6.10"},
+      {syntax_tools,"Syntax tools","2.1.2"},
+      {xmerl,"XML parser","1.3.15"},
+      {crypto,"CRYPTO","4.0"},
+      {mnesia,"MNESIA  CXC 138 12","4.15"},
+      {compiler,"ERTS  CXC 138 10","7.1"},
+      {sasl,"SASL  CXC 138 11","3.0.4"},
+      {stdlib,"ERTS  CXC 138 10","3.4"},
+      {kernel,"ERTS  CXC 138 10","5.3"}]},
+ {os,{unix,linux}},
+ {erlang_version,
+     "Erlang/OTP 20 [erts-9.0] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:64] [hipe] [kernel-poll:true]\n"},
+ {memory,  # 内存
+     [{total,56444960},  # 总共消耗的内存，单位字节
+      {connection_readers,0},  # tcp订阅连接消耗
+      {connection_writers,0},  # tcp发布者连接消耗
+      {connection_channels,0}, # 信道消耗
+      {connection_other,0},    # 其他消耗
+      {queue_procs,2840},      # 队列进程消耗
+      {queue_slave_procs,0},   # 队列子进程消耗
+      {plugins,0},             # 插件消耗
+      {other_proc,22726336},   # 其他进程消耗
+      {mnesia,60944},          
+      {metrics,184544},
+      {mgmt_db,0},
+      {msg_index,45048},       # 消息标记
+      {other_ets,1695784},
+      {binary,94472},         # 一些被引用的数据
+      {code,21374813},        # 代码
+      {atom,891849},
+      {other_system,9549962}]},
+ {alarms,[]},
+ {listeners,[{clustering,25672,"::"},{amqp,5672,"::"}]},  # mq监听端口5672，erlang端口25672
+ {vm_memory_high_watermark,0.4},  # 开启流控的内存阀值
+ {vm_memory_limit,6568098201},    # 消息持久化阀值
+ {disk_free_limit,50000000},      # 磁盘开启流控阀值
+ {disk_free,48187891712},         # 磁盘空闲量
+ {file_descriptors,  # 文件句柄
+     [{total_limit,924},  # 文件句柄上限
+     {total_used,2},      # 已使用
+     {sockets_limit,829}, # 允许的TCP连接上限
+     {sockets_used,0}]},  # 已使用连接数
+ {processes,       
+    [{limit,1048576},     # 允许的最大进程数
+    {used,156}]},         # 已使用进程数
+ {run_queue,0},           # 运行的队列数
+ {uptime,97},             
+ {kernel,{net_ticktime,60}}]
+
+```
 # Python简单操作rabbitMQ
     python操作RabbitMQ需要安装pika模块   pip install pika
 ## 一对一发送消息(工作队列)
@@ -56,7 +140,6 @@ connection.close()
 ```
 ### 接受消息
 ```python
-import pika
 import pika
 #封装RabbitMQ的认证信息
 credentials = pika.PlainCredentials(username='xiaojie', password='xiaojiexiaojie', erase_on_connect=False)  

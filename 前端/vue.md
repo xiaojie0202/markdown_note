@@ -905,7 +905,10 @@ const router = new VueRouter({
         name:'index'
         component: Vamin
     },
-    {path:'/mark', component: Vmaekdown},
+    {
+        path:'/mark', 
+        component: Vmaekdown
+    },
   ]
 })
 ```
@@ -934,20 +937,424 @@ new Vue({
   <router-view></router-view>
 </div>
 ```
+5. 实例-刷新页面保持当前菜单的激活状态
+```
 
+<template>
+  <ul class="nav navbar-nav">
+    <li v-for="(item, index) in routes" :class="{active:currindex === index}" @click="reloadRouterCurrindex(index)">
+      <router-link :to="item.url">{{item.title}}</router-link>
+    </li>
+  </ul>
+</template>
+
+<script>
+  export default {
+    name: 'Vheader',
+    data() {
+      return {
+        // 所有菜单
+        routes: [
+          {url: '/', title: '我的首页'},
+          {url: '/mark', title: '我的笔记'}
+        ],
+        // 标识当前菜单
+        currindex: 0
+      }
+    },
+    methods: {
+      // 切换菜单的事件
+      reloadRouterCurrindex(index){
+        this.currindex = index
+      }
+    },
+    // 刷新后保持路由状态
+    created(){
+      for(var i = 0; i < this.routes.length; i++){
+        if (this.routes[i].url === this.$route.path){
+          this.currindex = i;
+          return
+        }
+
+      }
+    }
+  }
+</script>
+
+<style>
+
+</style>
+
+```
+6. 路由懒加载
+```
+// import Vamin from './components/Vamin'
+// import Vmaekdown from './components/Vmarkdown'
+
+const router = new VueRouter({
+  routes: [
+    {
+        path:'/', 
+        name:'index'
+        // 路由懒加载，只有用到组件的时候才会加载
+        // /*webpackChunkName:'index'*/ webpack标识， 在打包的时候会打包成(index.[hash].js)
+        component: () => import(/*webpackChunkName:'index'*/ './components/Vamin')
+    },
+    {
+    path:'/mark', 
+    // 路由懒加载，只有用到组件的时候才会加载
+    component: () => import('./components/Vmarkdown')
+    },
+  ]
+})
+```
+## 动态路由
+1. 定义动态路由
+```html
+{
+  path: '/article/:articleID',
+  name: 'article',
+  component: () => import(/*webpackChunkName:'index'*/ '@/components/showArticle')
+}
+```
+2. 动态路由的跳转
+```html
+<router-link to="/article/1">最新文章1</router-link>
+<router-link :to="{ name: 'article', params:{articleID: '2'}}">最新文章2</router-link>
+```
+3. 获取动态路由的参数
+```html
+<template>
+  <h1>
+    {{$route.params.articleID}}
+  </h1>
+</template>
+```
+## 嵌套路由
+1. 定义嵌套路由
+```html
+{
+  path: '/user',
+  name: 'UserInfo',
+  component: () => import(/*webpackChunkName:'sserindex'*/  '@/components/User/UserIndex'),
+  children: [
+    {
+      path: 'permit',
+      name: 'UserPermit',
+      component: () => import(/*webpackChunkName:'sserpermit'*/  '@/components/User/UserPermit')
+    }
+  ]
+}
+```
+2. 嵌套路由跳转
+```html
+<template>
+  <div class="app">
+    <router-link to="/user/permit">查看权限</router-link>
+    <router-view/>
+  </div>
+</template>
+```
+## 重定向路由
+```html
+    {
+      path: '/to_index',
+      // 直接重定向只路径
+      // redirect: '/'
+      // 重定向到 路由别名对应的页面
+      // redirect: {
+      //   name: 'Vmain'
+      // }
+      redirect: to => {
+        console.log(to);
+        // return '/'
+        return {
+          name: 'Vmain'
+        }
+      }
+    }
+```
+## 命名视图
+## JS控制路由
+>- 返回上一页
+```
+this.$router.back()
+this.$router.go(-1)
+```
+>- 跳转到指定页面
+```
+this.$router.push('/login?userid=2')
+this.$router.push(
+                    {
+                        name:'login'，
+                        query: {
+                            userid: 2
+                        }
+                    }
+                    )
+```
+>- 替换的方式跳转到指定路由
+```
+this.$router.replace('/login')
+this.$router.replace({name:'login'})
+```
+## 路由组件传参
+### 路由动态参数传参
+1. 定义动态路由
+```
+{
+      path: '/article/:articleID',
+      name: 'article',
+      component: () => import(/*webpackChunkName:'showarticle'*/ '@/components/showArticle'),
+      props:true //路由的参数作为组件的属性
+}
+```
+2. 组件中接受路由传递的参数
+```
+<script>
+  export default {
+    name:'showArticle',
+    data(){
+      return{
+      }
+    }，
+    props:{
+      articleID: {
+        type: Number,
+        default: 1
+      }
+    }
+  }
+</script>
+```
+2. 组件中定义参数
+
+## 路由导航守卫
+    vue-router 提供的导航守卫主要用来通过跳转或取消的方式守卫导航。有多种机会植入路由导航过程中：全局的, 单个路由独享的, 或者组件级的。
+### 全局守卫
+    router.beforeEach 注册一个全局前置守卫
+>- 例子： 拦截路由判断用户是否登陆
+```
+const LOGIN_PAGE_NAME = 'Login';
+router.beforeEach((to, from, next) => {
+  const token = getToken();
+  if (!token && to.name !== LOGIN_PAGE_NAME) {
+    console.log(to);
+    console.log(from);
+    // 未登录且要跳转的页面不是登录页
+    next({
+      name: LOGIN_PAGE_NAME, // 跳转到登录页
+      query:{
+        'next': to.fullPath
+      }
+    })
+  } else if (!token && to.name === LOGIN_PAGE_NAME) {
+    // 未登陆且要跳转的页面是登录页
+    next() // 跳转
+  } else if (token && to.name === LOGIN_PAGE_NAME) {
+    // 已登录且要跳转的页面是登录页
+    next({
+      name: 'Home', // 跳转到homeName页
+
+    })
+  } else {
+   // 如果登陆了，跳转到用户之前过来的页面
+    next()
+  }
+});
+```
+    
 # Vuex
     Vuex 是一个专为 Vue.js 应用程序开发的状态管理模式。它采用集中式存储管理应用的所有组件的状态，并以相应的规则保证状态以一种可预测的方式发生变化。
     Vuex 相当于所有组件的数据中转站， Vuex链接所有组件进行数据共享
+    1、vuex就是在vue中创建全局变量的东西
+    2、vuex提供了一些优雅的方法，可以让我们改变全局变量的值
+![](https://vuex.vuejs.org/vuex.png)
+## Vuex使用流程
+>- 创建Vuex实例
+```javascript
+import Vue from 'vue'
+Vue.use(Vuex);
+const store = new Vuex.Vuex.Store(
+    {
+        state:{
+            // statey用来保存状态
+            appName:'Markdown'
+        },
+        mutations:{},
+        actions:{},
+        modules:{
+            user:{
+                state:{
+                    username: '小杰'
+                },
+                mutations:{},
+                actions:{}
+            }
+        }    
 
+    }
+)
+```
+>- 在组建中调用
+```
+<script>
+  // 导入vuex
+  import { mapState} from 'vuex'
+  export default {
+    name: 'Vheader',
+    data() {
+      return {
+      }
+    },
+    computed: {
+      ...mapState({
+        appName: state => state.appName,
+        userName: state => state.user.username
+      }),
+      
+      // 下列写法效果与 mapState 效果相同
+      // appName() {
+      //   return this.$store.state.appName;
+      // },
+      // username() {
+      //   return this.$store.state.user.username;
+      // }
+    }
+  }
+</script>
+```
 
+>- 安装
+>>- npm install vuex --save
+## state
+       Vuex 使用单一状态树——是的，用一个对象就包含了全部的应用层级状态。至此它便作为一个“唯一数据源 (SSOT)”而存在。这也意味着，每个应用将仅仅包含一个 store 实例。单一状态树让我们能够直接地定位任一特定的状态片段，在调试的过程中也能轻易地取得整个当前应用状态的快照。
+>- 定义state中的数据
+```
+state:{
+    // statey用来保存状态
+    appName:'Markdown'
+},
 
-
-
-
-
-
-
-
+```
+>- 在组建中获取state中的数据
+```javascript
+export default {
+    name: 'Vheader',
+    data() {
+      return {
+      }
+    },
+    computed: {
+      appName() {
+        return this.$store.state.appName;
+      },
+    }
+  }
+```
+## Getter
+    有时候我们需要从 store 中的 state 中派生出一些状态，此时使用getter，相当于组件中的计算属性（computed）
+>- 创建getter,
+```
+// 创建getter，例如反悔app的名称和版本号
+const store = new Vuex.Store({
+  state: {
+    appName: 'Markdown',
+    appVersion: 'v1.0'
+  },
+  // 创建getters
+  getters: {
+    AppVersionName (state) => {
+        return '${state.apppName}-${state.appVersion}'
+    }
+  },
+  modules:{
+    user:{
+    state: {
+        firstname: '小',
+        lasrname: '杰'
+      },
+    // 模块中创建getters
+    getters: {
+        username (state) => {
+            return state.firstname + state.lastname;
+        }
+    }
+  }
+})
+```
+>>- 在组建中使用getter
+```
+import {mapGetters} from 'vuex'
+export default {
+  name: 'Vheader',
+  data() {
+    return {
+    }
+  },
+  computed: {
+    //调用getters中的数据
+    // appVersion() {
+    //   return this.$store.getters.appVersion;
+    // },
+    ...mapGetters({
+      appVersion: getters.appVersion
+    }),
+    username(){
+        return this.$store.user.getters.username;
+    }
+  }
+}
+```
+## mutations
+    用来定义事件在组建中触发从而改变state，更改 Vuex 的 store 中的状态的唯一方法是提交 mutation。Vuex 中的 mutation 非常类似于事件：每个 mutation 都有一个字符串的 事件类型 (type) 和 一个 回调函数 (handler)。这个回调函数就是我们实际进行状态更改的地方，并且它会接受 state 作为第一个参数
+>- 定义mutations中的事件来操作state中的状态
+```
+const store = new Vuex.Store({
+  state: {
+    count: 1
+  },
+  mutations: {
+    increment (state, n) {
+      // 变更状态
+      state.count += n
+    }
+  }
+})
+```
+>- 在组建中触发mutations
+```
+import { mapMutations } from 'vuex'
+  export default {
+    name: 'HelloWorld',
+    data() {return {}},
+    methods: {
+       // 触发方式1
+      increment(){
+        this.$store.commit('increment'， 12)
+      }
+      
+      // 触发方式2
+      increment(){
+        this.$store.commit({
+            type:'increment',
+            count: 12 // 此时mutations赋值得时候应该是: state.count += parames.count
+        })
+       
+      // 触发方式3
+       ...mapMutations([
+          'increment', // 将 `this.increment()` 映射为 `this.$store.commit('increment')`
+    
+          // `mapMutations` 也支持载荷：
+          'incrementBy' // 将 `this.incrementBy(amount)` 映射为 `this.$store.commit('incrementBy', amount)`
+        ]),
+        ...mapMutations({
+          add: 'increment' // 将 `this.add()` 映射为 `this.$store.commit('increment')`
+        })
+      }
+    }
+  }
+```
 
 
 
@@ -971,9 +1378,25 @@ Available official templates:
 >- 创建模板
 >>- vue init "templates名" "包名"
 
+>- 全局使用jQuery
+>>- webpack.base.conf.js
+```
+//新增
+var webpack = require("webpack")
 
+plugins: [
+new webpack.ProvidePlugin({
+  // 将jquery及其别名注册到全局
+  $: "jquery",
+  jQuery: "jquery",
+  'window.jQuery': 'jquery',
+  // 将Popper及其别名注册到全局
+  Popper: ['popper.js', 'default']
+})
+],
+```
 
-
+ 
 
 
 

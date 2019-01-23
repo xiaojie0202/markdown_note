@@ -104,6 +104,7 @@ Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/f
 >>- 由于复杂请求时，首先会发送“预检”请求，如果“预检”成功，则发送真实数据。
 >>>- “预检”请求时，允许请求方式则需服务器设置响应头：Access-Control-Request-Method
 >>>- “预检”请求时，允许请求头则需服务器设置响应头：Access-Control-Request-Headers
+>>>- “预检”缓存时间，服务器设置响应头：Access-Control-Max-Age
 ```
 # 后端代码实现
 def send_ajax(requests):
@@ -112,5 +113,8 @@ def send_ajax(requests):
     data = {'name': 'xiaojie', 'age': 1, 'interest': [1, 2, 3, 4, 5]}
     response = HttpResponse('%s(%s)' % (callbacks, json.dumps(data)))
     response['Access-Control-Allow-Origin'] = "*"
+    response['Access-Control-Allow-Methods'] = "PUT,DELETE"
+    response['Access-Control-Allow-Headers'] = "Content-Type,k1"
+    response['Access-Control-Max-Age'] = "10"
     return response
 ```

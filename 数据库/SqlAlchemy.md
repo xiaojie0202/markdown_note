@@ -281,30 +281,44 @@ WHERE students.id = %(param_1)s
 ```
 
 ## ORM-删除
-1. 先查询踹需要删除的数据
-
-    ```del_students = session.query(Students).filter_by(name='张3').first()```
-2. 添加到session的删除队列中
-
-    ```session.delete(del_students)```
-3. 提交事务
-
-    ```session.commit()```
-
+>- 第一种
+```
+# 先查询踹需要删除的数据
+del_students = session.query(Students).filter_by(name='张3').first()
+# 添加到session的删除队列中
+session.delete(del_students)
+# 提交事务
+session.commit()
+```
+>- 第二种
+```
+session.query(Students).filter_by(name='张3').delete()
+session.commit()
+```
 ## ORM-修改数据
-1. 先查询到需要修改的数据
+>- 第一种
+```
+# 先查询到需要修改的数据
+a = session.query(Students).filter_by(name='张4').first()
+# 修改value
+a.name = '王菲'
+# 修改的数据存储在session.dirty
+session.dirty  # IdentitySet([<Students(name=王菲,gender=False,birthday=2014-01-01)>])
+# 提交事务
+session.commit()
+```
+>- 第二种
+```
+# 直接调用update更新
+session.query(Students).filter_by(name='张4').update({Students.name: '王菲'})
+    or
+session.query(Students).filter_by(name='张4').update({'name': '王菲'})
 
-    ```a = session.query(Students).filter_by(name='张4').first()```
-2. 修改value
+# 在更新的时候用原来的值,需要制定 synchronize_session
+session.query(Students).filter_by(name='张4').update({'name': Students.name + '王菲'}, synchronize_session=False)
 
-    ```a.name = '王菲'```
-3. 修改的数据存储在session.dirty
-    ```
-    >>> session.dirty
-    IdentitySet([<Students(name=王菲,gender=False,birthday=2014-01-01)>])
-    ```
-4. 提交事务
-    ```session.commit()```
+session.commit()
+```
 
 ## 数据库映射类的使用 - 查询
 >- 查询某张表中所有的数据
@@ -363,6 +377,7 @@ WHERE students.id = %(param_1)s
 
     ```
     >>> session.query(Students).order_by('name', 'id').all() # 跟进Students表中name和id字段进行排序
+    >>> session.query(Students).order_by(Studens.name.desc(), 'id').all() # 跟进Students表中name和id字段进行排序
 
     SELECT students.id AS students_id, students.name AS students_name, students.gender AS students_gender, students.birthday AS students_birthday
     FROM students ORDER BY students.name, students.id
@@ -391,6 +406,7 @@ WHERE students.id = %(param_1)s
 >>- session.query(Students).filter_by(name='小杰')
 
     ```
+    filter_by 只能传入字符串
     >>> session.query(Students).filter_by(name='小杰').all()
 
     SELECT students.id AS students_id, students.name AS students_name, students.gender AS students_gender, students.birthday AS students_birthday
@@ -431,7 +447,7 @@ WHERE students.id = %(param_1)s
         query(Students).filter(Students.name.like('%张'))
 
     模糊匹配不许分大小写 ILIKE:
-        query(Students).filter(Students.name.like('张%'))
+        query(Students).filter(-Students.name.like('张%'))
 
     IN:
         query(Students).filter(Students.name.in_(['张1','张2']))
@@ -550,22 +566,51 @@ class Articles(Base):
 
 ```
 2. 一对多  增加数据
+>-  正向添加, 给用户添加文章
 ```
 >>> user = Users(name='小杰')
+# 单个添加
 >>> user.article.append(Articles(article='我是文章1'))
 >>> user.article.append(Articles(article='我是文章2'))
 >>> user.article
     [<Articles object at 0x000001D4DB9E8CF8>, <Articles object at 0x000001D4DA996EB8>]
 
+# 添加多篇文章
+>>> user.article.extend([Articles(article='我是第%s篇文章' % i) for i in range(10)])
+
+# 提交到数据库
 >>> session.add(user)
 >>> session.new
     IdentitySet([<Users object at 0x000001D4DB9CFEF0>, <Articles object at 0x000001D4DB9E8CF8>, <Articles object at 0x000001D4DA996EB8>])
+>>> session.commit()
+```
+>- 反向添加, 给文章绑定用户
+```
+article = Articles(article='我是一篇文章!')
+article.user = session.query(Users).filter(Users.id == 1).first()
+session.add(article)
+session.commit()
 ```
 3. 一对多  删除数据
+
 4. 一对多  修改数据
 5. 一对多  查询数据
+```
+#查询所有文章， 以及文章的作者
+session.query(Users.name, Articles.article).join(Articles).all()
+# SELECT users.name AS users_name, article.article AS article_article FROM users INNER JOIN article ON users.id = article.user_id
 
+session.query(Articles.article, Users.id, Users.name).join(Users, Articles.user_id==Users.id, isouter=True).all()
+# SELECT article.article AS article_article, users.id AS users_id, users.name AS users_name FROM article LEFT OUTER JOIN users ON article.user_id = users.id
 
+# 查询指定用户的所有文章
+user = session.query(Users).filter(Users.name == '小杰').first()
+user.article  # 当前用户的所有文章
+
+# 查询当前文章所属用户
+article = session.query(Articles).filter_by(id=1).first()
+article.user
+```
 ### 一对一
     在实际环境中，每个学生都有一个地址
 

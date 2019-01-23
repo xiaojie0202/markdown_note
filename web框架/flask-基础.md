@@ -27,7 +27,6 @@ if __name__ == '__main__':
     # 如果樱花请求到来则执行app对象的__call__方法
     app.run(host='127.0.0.1', port=8080, debug=True) # 启用调试支持,修改代码后服务器自动重启
 ```
-
 ## flask-路由系统
     flask的路由系统是通过'flask.Flask'的实列的'route()'方法进行装饰的
 - route(url, method, endpoint)
@@ -390,7 +389,6 @@ def sun(a1, a2, a3):
 VUE-轮播图.html
 
 ```
-
 ## 请求对象-request
     flask.request 封装了用户请求的所有数据
 ### request详解
@@ -576,7 +574,6 @@ if __name__ == '__main__':
     app.run()
 
 ```
-
 ## Flask配置文件
     flask中的配置文件是一个flask.config.Config对象（继承字典）,
     
@@ -663,4 +660,20 @@ if __name__ == '__main__':
  
     PS: settings.py文件默认路径要放在程序root_path目录，如果instance_relative_config为True，则就是instance_path目录
     ```
+```
+## Flask上下文管理
+>- 请求上下文流程
+```
+1. 请求到之后wisgi会触发__call__方法， 由__call__方法再次调用wisgi_app方法，
+2. 在wsgi_app方法中首先将请求下相关+空session封装到RequestContext对象中，即ctx
+3. 将ctx交给LocalStack对象，再有LocalStack将ctx添加到Local中，
+    -Local结构:
+    __storage__ = {
+        线程唯一标识: {stack:[ctx,]}
+    }
+4. 根据清秀总的cookies中提取名称为sessionid对应的值， 对cookies加密+反序列化，再次反序列化， 再次赋值给Locak中ctx的session
+5. 执行视图函数
+6. 吧session中的数据再次写入到cookies中
+7. 将ctx删除
+8. 将结果返回给用户浏览器，断开socket
 ```

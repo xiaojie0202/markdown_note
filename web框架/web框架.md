@@ -17,7 +17,7 @@
 6. 让后从模板路径拿到对应的模板进行渲染，
 7. 渲染完成后变成字符串，经过所有中间件的process_response方法后交给wsgi
 8. wsgi交给客户端
-
+![](../png/Django生命周期.png)
 # 什么是wsgi？
     是web服务网关接口，是一套协议规范。
 - 实现此吸引的有：
@@ -35,4 +35,3 @@
      1. 用户先发送GET请求获取scrf torken, 放在前端Form表单中生成一个隐藏的标签 和cookies中
      2. 提交表单发送post请求时候，需要写道之前发给用户的scrf token
      3. scrf 是在CsrfViewMiddleware中间件的 process_view方法进行校验
-    
