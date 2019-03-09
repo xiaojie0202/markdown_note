@@ -140,8 +140,18 @@ df = pd.DataFrame(
 # iloc 通过位置进行索引数据
 df.iloc[1:3,[2,3]]
 df[1:3, 1:3]
+```
+
+#### DateFrame 布尔值索引
+```python
+import pandas as pd
+
+df = pd.DataFrame({'name': ['xiaojie', 'zhangsan', 'lisi', 'wangwu'], 'age': [18, 28, 38, 48]})
+print(df[(df['age'] < 30) & (df['age'] > 20)]) # 取年龄小于30大于20的人
+print(df[(df['age'] == 18) | (df['age'] == 28)]) # 取年龄等于18或者28的人
 
 ```
+
 ####  排序
 ```python
 import pandas as pd
@@ -156,4 +166,127 @@ df = pd.DataFrame(
 print(df[:2].sort_index())  # 按列索引进行排序
 print(df.sort_values('name'))  # 按指定列进行排序  
 ```
+## 缺失值处理
+判断数据是否为NaN：pd.isnull(df),pd.notnull(df)
 
+处理方式1：删除NaN所在的行列dropna (axis=0, how='any', inplace=False)
+处理方式2：填充数据，t.fillna(t.mean()),t.fiallna(t.median()),t.fillna(0)
+
+
+处理为0的数据：t[t==0]=np.nan
+当然并不是每次为0的数据都需要处理
+计算平均值等情况，nan是不参与计算的，但是0会
+## DateFrame数据合并
+>- join: 根据列索引合并, 会根据第一个FateFrame的列索引进行合并， 如果第二个
+```python
+
+import pandas as pd
+import numpy as np
+
+t1 = pd.DataFrame(np.zeros((3, 4)), index=[0, 1, 2], columns=[0, 1, 2, 3])
+print(t1)
+'''
+     0    1    2    3
+0  0.0  0.0  0.0  0.0
+1  0.0  0.0  0.0  0.0
+2  0.0  0.0  0.0  0.0
+'''
+
+
+t2 = pd.DataFrame(np.zeros((2, 2)), index=[0, 1], columns=['a', 'b'])
+'''
+     a    b
+0  0.0  0.0
+1  0.0  0.0
+'''
+# 会根据t1的所有行索引进行合并， t2多出的行会删掉， 缺失的行会补上nan
+t1.join(t2)
+'''
+     0    1    2    3    a    b
+0  0.0  0.0  0.0  0.0  0.0  0.0
+1  0.0  0.0  0.0  0.0  0.0  0.0
+2  0.0  0.0  0.0  0.0  NaN  NaN
+'''
+
+t2.join(t1)
+'''
+     a    b    0    1    2    3
+0  0.0  0.0  0.0  0.0  0.0  0.0
+1  0.0  0.0  0.0  0.0  0.0  0.0
+'''
+```
+>- marge合并
+![](../png/pandas数据合并.png)
+
+# 实例1
+```python
+'''
+需求分析：
+>- 有一组电影数据
+RangeIndex: 1000 entries, 0 to 999
+Data columns (total 12 columns):
+Rank                  1000 non-null int64
+Title                 1000 non-null object
+Genre                 1000 non-null object
+Description           1000 non-null object
+Director              1000 non-null object
+Actors                1000 non-null object
+Year                  1000 non-null int64
+Runtime (Minutes)     1000 non-null int64
+Rating                1000 non-null float64
+Votes                 1000 non-null int64
+Revenue (Millions)    872 non-null float64
+Metascore             936 non-null float64
+dtypes: float64(3), int64(4), object(5)
+memory usage: 93.8+ KB
+None
+
+需要统计的信息：
+1. 导演人数
+    len(df['Director'].unique())
+2. 演员人数
+    len(set([i for j in df['Actors'].str.split(', ').tolist() for i in j]))
+3. 时长最长的电影
+    df[df['Runtime (Minutes)'] == df['Runtime (Minutes)'].max()]['Title'].values.
+4. 统计电影的各个分类的数量
+    # 获取所有的分类
+    genre_all = set([j for i in df['Genre'].str.split(',').tolist() for j in i])
+
+    # 根据分类创建一个 列所以为分类， 行索引为电影的个数，的全0的DataFrame
+    genre_df = pd.DataFrame(np.zeros((df.shape[0], len(genre_all))), columns=list(genre_all))
+
+    # 循环每个电影，并获取电影的分类，在对应的新分类DateFeame中标1
+    for index in range(0, df.shape[0]):
+        genre_df.loc[index, df['Genre'].str.split(',')[index]] = 1
+
+    for genre in genre_all:
+        print('分类:', genre, '个数:', genre_df[genre].sum())
+
+'''
+import pandas as pd
+import numpy as np
+file = 'IMDB-Movie-Data.csv'
+
+df = pd.read_csv(file)
+
+
+print('导演人数:', len(df['Director'].unique()))
+
+print('演员人数:', len(set([i for j in df['Actors'].str.split(', ').tolist() for i in j])))
+
+print('时长最长的电影:', df.loc[df['Runtime (Minutes)'].idxmax(), 'Title'])
+
+# 获取所有的分类
+genre_all = set([j for i in df['Genre'].str.split(',').tolist() for j in i])
+
+# 根据分类创建一个 列所以为分类， 行索引为电影的个数，的全0的DataFrame
+genre_df = pd.DataFrame(np.zeros((df.shape[0], len(genre_all))), columns=list(genre_all))
+
+# 循环每个电影，并获取电影的分类，在对应的新分类DateFeame中标1
+for index in range(0, df.shape[0]):
+    genre_df.loc[index, df['Genre'].str.split(',')[index]] = 1
+
+for genre in genre_all:
+    print('分类:', genre, '个数:', genre_df[genre].sum())
+
+```

@@ -437,6 +437,7 @@ print(a)
 >>- 什么时候numpy中会出现nan：
 >>>- 当我们读取本地的文件为float的时候，如果有缺失，就会出现nan
 >>>- 当做了一个不合适的计算的时候(比如无穷大(inf)减去无穷大)
+>>>- nan做任何运行都是nan
 
 1. 两个nan不相等
 ```
@@ -446,9 +447,25 @@ Out[2]: False
 In [3]: np.nan != np.nan
 Out[3]: True
 ```
+2. 统计数组中nan的个数
+```
+a = np.arange(1, 21, 1, dtype=np.float)
+a[3:5] = np.nan
+# array([ 1.,  2.,  3., nan, nan,  6.,  7.,  8.,  9., 10., 11., 12., 13., 14., 15., 16., 17., 18., 19., 20.])
+np.count_nonzero(a!=a)
+Out: 2
+```
+3. 替换数组中nan
+```python
+import numpy as np
+a = np.arange(1, 21, 1, dtype=np.float)
+a[3:5] = np.nan
+a[np.isnan(a)] = 0 # 替换nan为0
+a[np.isnan(a)] = a[a==a].mean()  # 替换为均值
+
+```
+
 2. 
-
-
 >- inf(-inf,inf):infinity,inf表示正无穷，-inf表示负无穷
 >>- 什么时候回出现inf包括（-inf，+inf）
 >>>- 比如一个数字除以0，（python中直接会报错，numpy中是一个inf或者-inf）
@@ -466,6 +483,7 @@ np.inf  # float类型
     最小值：t.min(axis=None)
     极值：np.ptp(t,axis=None) 即最大值和最小值只差
     标准差：t.std(axis=None) 
+    数组中不为零的元素个数： t.count_nonzero()
 ### 数组的拼接
 ![](https://note.youdao.com/yws/public/resource/4d9f2b353221035aa2dc87736c84e628/xmlnote/22CFDAD0DE0A496885A6FEF360B6B90D/7570)
 ### 数组的行列交换

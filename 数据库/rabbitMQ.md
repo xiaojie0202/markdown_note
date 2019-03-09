@@ -26,10 +26,10 @@
 >>- sudo rabbitmq-plugins enable rabbitmq_management
 >- 查看安装的插件 
 >>- sudo rabbitmqctl list_users
->- 查看用户 
+>- 查看用户
 >>- sudo rabbitmqctl list_users
 >- 新增管理员用户 
->>- sudo rabbitmqctl add_user admin admin 
+>>- sudo rabbitmqctl add_user admin admin
 >>- sudo rabbitmqctl set_user_tags admin administrator
 >- 授权用户远程连接
 >>- rabbitmqctl set_permissions -p "/" admin ".*" ".*" ".*" 

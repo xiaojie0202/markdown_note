@@ -229,7 +229,17 @@ datetime.datetime(2017, 2, 5, 6, 39, 40, 102821)
 >>> dt + datetime.timedelta(hours=3, seconds=30)  # 3小时30秒后  
 datetime.datetime(2017, 2, 5, 12, 40, 10, 102821)
 ```
-
+### string转datetime并设置时区
+```python
+import pytz
+import datetime
+#先把字符串转成不带时区的datetime
+dt = datetime.datetime.strptime('2018-02-03 15:37:12' , '%Y-%m-%d %H:%M:%S')
+#把不带时区的datetime转成timestamp再转成秒
+ts = int(dt.timestamp())
+#把秒转成带时区的datetime
+t = datetime.datetime.fromtimestamp(ts, pytz.timezone('Asia/Shanghai'))
+```
 ## datetime.tzinfo
     时区相关信息对象的抽象基类。它们由datetime和time类使用，以提供自定义时间的而调整。
 ## datetime.timezone
